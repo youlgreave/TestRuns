@@ -58,7 +58,7 @@ def ambiguous_or_not(message): # Wrapper Function
         
 # The Machine has Learned# 
 
-test_data = pd.read_csv(io.StringIO(uploaded['upload_test_file.csv'].decode('utf-8')),header=None)
+test_data = pd.read_csv(io.StringIO(uploaded['test_file.csv'].decode('utf-8')),header=None)
 test_data[2]=test_data[1].apply(ambiguous_or_not)
 test_data.head()
 
