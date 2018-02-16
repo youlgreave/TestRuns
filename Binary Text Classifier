@@ -1,0 +1,66 @@
+from google.colab import files
+import pandas as pd
+import io
+
+uploaded = files.upload()
+df = pd.read_csv(io.StringIO(uploaded['data_train.csv'].decode('utf-8')),header=None)
+
+raw_text = df[0]
+y = df[1]
+
+import nltk
+nltk.download('stopwords'),nltk.download('porter_test') 
+
+#Text PreProcessing Function Creation
+stop_words = nltk.corpus.stopwords.words('english')
+ps = nltk.PorterStemmer()
+
+import re
+def pre_process(txt):
+    z=  re.sub("[^a-zA-Z]",  " ",  str(txt))
+    z = re.sub(r'[^\w\d\s]', ' ', z)
+    z = re.sub(r'\s+', ' ', z)
+    z = re.sub(r'^\s+|\s+?$', '', z.lower())
+    return ' '.join(ps.stem(term) 
+        for term in z.split()
+        if term not in set(stop_words)
+    )
+    
+processed = raw_text.apply(pre_process)
+print('Original Comment\n',raw_text.head(10),'\n\nTransformed Comment\n',processed.head(10))
+
+# Creating Unigram & Bigram Vectors
+from sklearn.feature_extraction.text import TfidfVectorizer
+vectorizer = TfidfVectorizer(ngram_range=(1, 2))
+X_ngrams = vectorizer.fit_transform(processed)
+
+#Train/Test Split
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X_ngrams,y,test_size=0.2,stratify=y)
+
+# Running the Classsifier
+from sklearn.linear_model import LogisticRegression
+clf=LogisticRegression() 
+clf.fit(X_train, y_train)
+y_pred = clf.predict(X_test)
+
+#Checking Model Prediction Accuracy
+from sklearn import metrics
+print ("Model Accuracy (F1) = {:.2f}%".format(metrics.f1_score(y_test, y_pred) * 100))
+
+def ambiguous_or_not(message): # Wrapper Function
+    if clf.predict(vectorizer.transform([pre_process(message)])):
+        return 'Not-Ambiguous' 
+    else:
+        return 'Ambiguous'
+        
+        uploaded = files.upload()
+        
+# The Machine has Learned# 
+
+test_data = pd.read_csv(io.StringIO(uploaded['upload_test_file.csv'].decode('utf-8')),header=None)
+test_data[2]=test_data[1].apply(ambiguous_or_not)
+test_data.head()
+
+test_data.to_csv('newfile.csv', index = None, header = False)
+files.download('newfile.csv')
